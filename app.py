@@ -96,13 +96,22 @@ def inject_theme() -> None:
             background: var(--accent) !important;
         }
 
-        /* Step dots */
-        .step-row { display: flex; justify-content: center; gap: 2.2rem; margin-bottom: 2.4rem; }
-        .step-dot { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
-        .step-dot .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border); }
-        .step-dot.active .dot { background: var(--accent-dark); }
-        .step-dot span { font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
-        .step-dot.active span { color: var(--text); font-weight: 600; }
+        /* Step dots (clickable nav buttons) */
+        .step-row-spacer { margin-bottom: 1.2rem; }
+        div[class*="st-key-navstep_"] button {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: var(--text-secondary) !important;
+            font-weight: 500 !important;
+            font-size: 0.85rem !important;
+            padding: 0.25rem 0 !important;
+        }
+        div[class*="st-key-navstep_"] button:hover {
+            color: var(--text) !important;
+            background: transparent !important;
+        }
+        div[class*="st-key-navstep_"] { display: flex; justify-content: center; }
 
         /* Landing hero */
         .hero-title { text-align: center; font-size: 4.4rem; margin-bottom: 0.6rem; }
@@ -154,11 +163,20 @@ def inject_theme() -> None:
 
 def step_indicator(current_page: str) -> None:
     idx = PAGES.index(current_page)
-    dots = "".join(
-        f'<div class="step-dot{" active" if i == idx else ""}"><div class="dot"></div><span>{label}</span></div>'
-        for i, label in enumerate(STEP_LABELS)
+    st.markdown(
+        f"<style>div[class~='st-key-navstep_{idx}'] button {{ "
+        f"color: var(--accent-dark) !important; font-weight: 700 !important; }}</style>",
+        unsafe_allow_html=True,
     )
-    st.markdown(f'<div class="step-row">{dots}</div>', unsafe_allow_html=True)
+    cols = st.columns(len(PAGES), gap="large")
+    for i, (col, label) in enumerate(zip(cols, STEP_LABELS)):
+        with col:
+            with st.container(key=f"navstep_{i}"):
+                dot = "\u25CF" if i == idx else "\u25CB"
+                if st.button(f"{dot}  {label}", key=f"navbtn_{i}", use_container_width=False):
+                    if i != idx:
+                        go_to(PAGES[i])
+    st.markdown('<div class="step-row-spacer"></div>', unsafe_allow_html=True)
 
 
 def go_to(page: str) -> None:
