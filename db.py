@@ -1,7 +1,7 @@
-"""Шар бази даних — Supabase (Postgres).
+"""Database layer \u2014 Supabase (Postgres).
 
-Зберігає/завантажує профілі та сценарії. Усі payload-и лежать у JSONB-полі
-`data`, конвертація — у models.py.
+Saves/loads profiles and scenarios. All payloads live in the JSONB column
+`data`; conversion happens in models.py.
 """
 
 from __future__ import annotations
@@ -22,15 +22,15 @@ def get_client() -> Client:
     key = get_secret("SUPABASE_KEY")
     if not url or not key:
         raise RuntimeError(
-            "Не задано SUPABASE_URL / SUPABASE_KEY. Додай їх у .env або st.secrets."
+            "SUPABASE_URL / SUPABASE_KEY are not set. Add them to .env or st.secrets."
         )
     return create_client(url, key)
 
 
-# ---------- Профілі ----------
+# ---------- Profiles ----------
 
 def save_profile(profile: UserProfile) -> None:
-    """Upsert профілю за user_email."""
+    """Upsert the profile by user_email."""
     client = get_client()
     payload = {
         "user_email": profile.user_email,
@@ -53,7 +53,7 @@ def load_profile(user_email: str) -> UserProfile | None:
     return UserProfile.from_row(rows[0]) if rows else None
 
 
-# ---------- Сценарії ----------
+# ---------- Scenarios ----------
 
 def save_scenario(scenario: Scenario) -> None:
     client = get_client()
@@ -66,7 +66,7 @@ def save_scenario(scenario: Scenario) -> None:
 
 
 def list_scenarios(user_email: str) -> list[Scenario]:
-    """Завантажує глобальні сценарії + сценарії конкретного користувача."""
+    """Loads global scenarios + scenarios for this specific user."""
     client = get_client()
     res = (
         client.table("scenarios")
@@ -77,13 +77,13 @@ def list_scenarios(user_email: str) -> list[Scenario]:
     )
     return [Scenario.from_row(r) for r in (res.data or [])]
 
-# ---------- Дані для scoring model ----------
+# ---------- Data for the scoring model ----------
 
 
 def load_model_profile_data(user_email: str) -> dict | None:
     """
-    Завантажує raw JSONB-профіль саме у форматі scoring model.
-    Не конвертує через UserProfile, бо поточний dataclass ще старого формату.
+    Loads the raw JSONB profile in the exact shape the scoring model
+    expects (this is the same shape produced by UserProfile.to_data()).
     """
     client = get_client()
     res = (
@@ -100,7 +100,7 @@ def load_model_profile_data(user_email: str) -> dict | None:
 
     data = rows[0].get("data", {}) or {}
 
-    # На випадок, якщо user_id не прописали всередині JSON.
+    # Fallback in case user_id wasn't set inside the JSON.
     data.setdefault("user_id", user_email)
 
     return data
@@ -108,10 +108,10 @@ def load_model_profile_data(user_email: str) -> dict | None:
 
 def list_model_scenarios_data(user_email: str) -> list[dict]:
     """
-    Завантажує raw JSONB-сценарії у форматі scoring model.
-    Бере глобальні сценарії + сценарії конкретного користувача.
+    Loads raw JSONB scenarios in the format the scoring model expects.
+    Takes global scenarios + scenarios for this specific user.
 
-    Старі короткі сценарії з UI пропускає, якщо вони не мають потрібних полів.
+    Skips short legacy-format scenarios that don't have the required fields.
     """
     client = get_client()
     res = (
@@ -139,12 +139,12 @@ def list_model_scenarios_data(user_email: str) -> list[dict]:
             "uncertainty_level",
         ]
 
-        # Пропускаємо старі сценарії з короткою структурою:
+        # Skip legacy short-format scenarios:
         # goal_tags / requirements / style / risk
         if not all(field in data for field in required_fields):
             continue
 
-        # Підстраховка для необов'язкових полів.
+        # Safe defaults for optional fields.
         data.setdefault("name", row.get(
             "title", data.get("scenario_id", "Unnamed scenario")))
         data.setdefault("category", "")
@@ -164,7 +164,7 @@ def list_model_scenarios_data(user_email: str) -> list[dict]:
 
     return scenarios
 
-# ---------- Результати scoring model ----------
+# ---------- Scoring model results ----------
 
 
 def save_user_result(
@@ -174,8 +174,8 @@ def save_user_result(
     model_result: dict,
 ) -> dict:
     """
-    Зберігає результат запуску scoring model у Supabase.
-    Зберігаємо тільки structured model output, без LLM-відповіді.
+    Saves the result of a scoring model run to Supabase.
+    Stores only the structured model output, without the LLM explanation.
     """
     client = get_client()
 
