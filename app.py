@@ -29,6 +29,14 @@ PAGES = ["landing", "profile", "chat", "results"]
 STEP_LABELS = ["Test", "Profile", "Advisor", "Results"]
 
 
+def humanize(value: str) -> str:
+    """Turns 'save_money' into 'Save money' for display, while the
+    underlying snake_case value is still what gets stored/scored."""
+    if not value:
+        return "Select an option"
+    return value.replace("_", " ").capitalize()
+
+
 # ---------------------------------------------------------------------------
 # Theme
 # ---------------------------------------------------------------------------
@@ -56,7 +64,8 @@ def inject_theme() -> None:
         h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.01em; }
 
         #MainMenu, footer, header { visibility: hidden; }
-        .block-container { padding-top: 2.2rem; max-width: 920px; }
+        .block-container { padding-top: 2.2rem; max-width: 1040px; }
+        .landing-wrap { padding-top: 3rem; }
 
         /* Buttons */
         .stButton > button {
@@ -96,16 +105,17 @@ def inject_theme() -> None:
         .step-dot.active span { color: var(--text); font-weight: 600; }
 
         /* Landing hero */
-        .hero-title { text-align: center; font-size: 3rem; margin-bottom: 0.4rem; }
-        .hero-subtitle { text-align: center; color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 2.6rem; }
+        .hero-title { text-align: center; font-size: 4.4rem; margin-bottom: 0.6rem; }
+        .hero-subtitle { text-align: center; color: var(--text-secondary); font-size: 1.3rem; margin-bottom: 3.6rem; }
 
-        .step-card { border-radius: var(--radius); padding: 1.4rem 1.3rem 1.6rem; height: 100%; border-top: 4px solid; }
+        .step-card { border-radius: var(--radius); padding: 2rem 1.8rem 2.2rem; height: 100%; min-height: 230px; border-top: 5px solid; }
         .step-card.blue { background: var(--card-blue-bg); border-color: var(--card-blue-line); }
         .step-card.green { background: var(--card-green-bg); border-color: var(--card-green-line); }
         .step-card.purple { background: var(--card-purple-bg); border-color: var(--card-purple-line); }
-        .step-card .icon { margin-bottom: 0.9rem; }
-        .step-card .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.3rem; }
-        .step-card .title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 1.05rem; }
+        .step-card .icon { margin-bottom: 1.3rem; }
+        .step-card .icon svg { width: 46px; height: 46px; }
+        .step-card .eyebrow { font-size: 0.82rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.45rem; }
+        .step-card .title { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 1.4rem; line-height: 1.3; }
 
         /* Section labels */
         .section-label { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 1.05rem; margin: 1.6rem 0 0.6rem; }
@@ -272,12 +282,14 @@ def render_profile(user_email: str) -> None:
             "Focus area", FOCUS_AREAS,
             index=FOCUS_AREAS.index(existing.focus_area)
             if existing and existing.focus_area in FOCUS_AREAS else 0,
+            format_func=humanize,
         )
         specific = st.selectbox(
             "Specific request", SPECIFIC_REQUESTS,
             index=SPECIFIC_REQUESTS.index(existing.specific_request)
             if existing and existing.specific_request in SPECIFIC_REQUESTS else 0,
             help="The most specific label for what you're trying to decide.",
+            format_func=humanize,
         )
         free_text = st.text_area(
             "Tell us more, in your own words",
@@ -297,6 +309,7 @@ def render_profile(user_email: str) -> None:
             "Budget level", ["", *BUDGET_LEVELS],
             index=["", *BUDGET_LEVELS].index(existing.budget_level)
             if existing and existing.budget_level in ["", *BUDGET_LEVELS] else 0,
+            format_func=humanize,
         )
         energy = st.slider(
             "Current energy (1-5)", 1, 5, existing.current_energy if existing else 3)
@@ -318,6 +331,7 @@ def render_profile(user_email: str) -> None:
             "Preferred action format", PREFERRED_ACTION_FORMATS,
             index=PREFERRED_ACTION_FORMATS.index(existing.preferred_action_format)
             if existing and existing.preferred_action_format in PREFERRED_ACTION_FORMATS else 0,
+            format_func=humanize,
         )
         structure_need = st.slider(
             "Need for structure (1-5)", 1, 5, existing.structure_need if existing else 3)
@@ -342,6 +356,7 @@ def render_profile(user_email: str) -> None:
             "Any concerns weighing on you right now?",
             HIDDEN_CONCERNS,
             default=existing.hidden_concerns if existing else [],
+            format_func=humanize,
         )
 
         _, btn_col = st.columns([4, 1])
