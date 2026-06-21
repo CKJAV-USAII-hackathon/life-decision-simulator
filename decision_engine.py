@@ -10,32 +10,31 @@ from life_decision_model import run_model
 
 def _json_safe(obj: Any) -> Any:
     """
-    Робить об'єкт безпечним для збереження в JSONB.
+    Makes an object safe to store in JSONB.
     """
     return json.loads(json.dumps(obj, ensure_ascii=False))
 
 
 def run_user_simulation_with_explanation(user_email: str) -> dict[str, Any]:
     """
-    1. Бере profile і scenarios з Supabase.
-    2. Запускає scoring model.
-    3. Зберігає raw model result у user_results.
-    4. Передає model result в LLM.
-    5. Повертає LLM explanation у чат, але не зберігає її в БД.
+    1. Loads profile and scenarios from Supabase.
+    2. Runs the scoring model.
+    3. Saves the raw model result to user_results.
+    4. Passes the model result to the LLM.
+    5. Returns the LLM explanation for the chat, but doesn't save it to the DB.
     """
     user_profile = db.load_model_profile_data(user_email)
     if not user_profile:
         raise ValueError(
-            f"Не знайдено профіль для user_email='{user_email}'. "
-            "Створи запис у таблиці user_profiles."
+            f"No profile found for user_email='{user_email}'. "
+            "Save a profile on the Profile tab first."
         )
 
     scenarios = db.list_model_scenarios_data(user_email)
     if not scenarios:
         raise ValueError(
-            "Не знайдено сценаріїв у форматі scoring model. "
-            "Додай сценарії в таблицю scenarios з user_email='__global__' "
-            "або з поточним email."
+            "No scenarios found in the scoring model format. "
+            "Run `python seed_scenarios.py` to load the shared scenario library."
         )
 
     model_result = run_model(user_profile, scenarios)

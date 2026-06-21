@@ -15,18 +15,18 @@ from config import get_secret
 from models import Scenario, UserProfile
 import json
 
-MODEL = "gemini-2.5-flash"  # за потреби заміни на gemini-2.5-pro
+MODEL = "gemini-2.5-flash"  # switch to gemini-2.5-pro if needed
 
 SYSTEM_BASE = (
-    "Ти — консультант з особистого розвитку та прийняття рішень. "
-    "Спираєшся на профіль користувача (колесо балансу, фокус, ресурси, мотивацію) "
-    "і його сценарії.\n"
-    "Правила відповіді:\n"
-    "- Відповідай українською, коротко й чітко: 2–4 речення або до 4 пунктів.\n"
-    "- Лише по суті запиту. Без вступів, повторів питання, дисклеймерів і води.\n"
-    "- Давай конкретику: один-два реалістичні перші кроки.\n"
-    "- Якщо бракує даних — постав РІВНО одне коротке уточнювальне питання.\n"
-    "- Не виходь за тему особистого розвитку, рішень і профілю користувача."
+    "You are a personal development and decision-making advisor. "
+    "You rely on the user's profile (balance wheel, focus area, resources, "
+    "motivation) and their scenarios.\n"
+    "Response rules:\n"
+    "- Reply in English, short and to the point: 2-4 sentences or up to 4 bullet points.\n"
+    "- Stay strictly on topic. No intros, no repeating the question, no disclaimers, no filler.\n"
+    "- Be concrete: give one or two realistic first steps.\n"
+    "- If you're missing information, ask EXACTLY one short clarifying question.\n"
+    "- Don't go outside the topic of personal development, decisions, and the user's profile."
 )
 
 
@@ -44,14 +44,14 @@ def build_system_prompt(
 ) -> str:
     parts = [SYSTEM_BASE]
     if profile:
-        parts.append("\n--- Профіль користувача ---\n" +
+        parts.append("\n--- User profile ---\n" +
                      profile.to_prompt_text())
     else:
-        parts.append("\n(Профіль ще не заповнений.)")
+        parts.append("\n(Profile not filled in yet.)")
     if scenarios:
-        parts.append("\n--- Сценарії користувача ---")
+        parts.append("\n--- User's notes ---")
         for s in scenarios:
-            parts.append("• " + s.to_prompt_text())
+            parts.append("\u2022 " + s.to_prompt_text())
     return "\n".join(parts)
 
 
@@ -87,29 +87,31 @@ def chat(
 
 def explain_model_result(model_result: dict, profile_data: dict | None = None) -> str:
     """
-    Пояснює результат scoring model людською мовою.
-    LLM не змінює ranking і не вигадує нові бали.
+    Explains the scoring model result in plain language.
+    The LLM does NOT change the ranking and does NOT invent new scores.
     """
     system = (
-        "Ти — пояснювач результатів Life Decision Simulator. "
-        "Ти НЕ змінюєш ranking сценаріїв і НЕ вигадуєш нові бали. "
-        "Ти отримуєш structured output scoring model і пояснюєш його простою українською мовою. "
-        "Покажи 3 найкращі сценарії, їхні бали, чому вони підходять, основний trade-off "
-        "і перший практичний крок. "
-        "Не виводь повний score breakdown, бо детальні бали будуть доступні окремо. "
-        "Пиши як продуктова відповідь у чаті, без технічного жаргону."
+        "You are the result explainer for the Life Decision Simulator. "
+        "You do NOT change the scenario ranking and do NOT invent new scores. "
+        "You receive the structured output of the scoring model and explain it "
+        "in plain English. "
+        "Show the top 3 scenarios, their scores, why they fit, the main "
+        "trade-off, and the first practical step. "
+        "Don't print the full score breakdown, since detailed scores are "
+        "shown separately. "
+        "Write like a product-quality chat reply, with no technical jargon."
     )
 
     prompt = {
         "profile": profile_data,
         "model_result": model_result,
         "instruction": (
-            "Поясни користувачу top-3 сценарії. "
-            "Формат відповіді:\n"
-            "1. Короткий висновок: який варіант найкращий і чому.\n"
-            "2. Top-3 сценарії: назва, score /100, коротке пояснення.\n"
-            "3. Для кожного: головна користь, головний trade-off або ризик, перший крок.\n"
-            "4. Наприкінці зазнач, що це симуляція trade-offs, а не остаточне рішення за користувача."
+            "Explain the top-3 scenarios to the user. "
+            "Response format:\n"
+            "1. A short conclusion: which option is best and why.\n"
+            "2. Top-3 scenarios: name, score /100, brief explanation.\n"
+            "3. For each: main benefit, main trade-off or risk, first step.\n"
+            "4. End by noting this is a trade-off simulation, not a final decision made for the user."
         ),
     }
 
